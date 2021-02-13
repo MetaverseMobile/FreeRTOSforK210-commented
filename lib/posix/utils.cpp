@@ -15,6 +15,7 @@
 #include "utils.h"
 #include <FreeRTOS.h>
 
+/* 将时间戳转换为时钟数 */
 uint32_t timespec_to_ticks(const struct timespec &ts)
 {
     uint64_t nsec_ms = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
