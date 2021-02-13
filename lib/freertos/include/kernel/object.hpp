@@ -181,6 +181,8 @@ namespace sys
         T *obj_;
     };
 
+
+    /* 生成一个对象 */
     template <typename T, typename... Args>
     object_ptr<T> make_object(Args &&... args)
     {

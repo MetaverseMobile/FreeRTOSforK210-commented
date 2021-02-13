@@ -162,6 +162,8 @@ private:
     object_ptr<T> obj_;
 };
 
+
+/* 生成对象的控制器 */
 template <typename T>
 object_accessor<T> make_accessor(object_ptr<T> obj)
 {
