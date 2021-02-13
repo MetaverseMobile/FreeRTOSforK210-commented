@@ -14,10 +14,13 @@
  */
 #include <sys/unistd.h>
 
+
+/* 获得系统参数 */
 long sysconf(int __name)
 {
     switch (__name)
     {
+        /* 只支持页字节数的查询 */
         case _SC_NPROCESSORS_CONF:
             return 1;
         default:
