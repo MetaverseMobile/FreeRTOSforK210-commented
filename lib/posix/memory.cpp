@@ -15,12 +15,16 @@
 #include <FreeRTOS.h>
 #include <stdlib.h>
 
+
+/* 用 C 语言规则编译 */
 extern "C"
 {
     void *_aligned_malloc(size_t size, size_t alignment);
     void _aligned_free(void *ptr);
 }
 
+
+/* 申请对齐的内存空间 */
 void *_aligned_malloc(size_t size, size_t alignment)
 {
     auto offset = alignment - 1 + sizeof(void *);
@@ -36,12 +40,16 @@ void *_aligned_malloc(size_t size, size_t alignment)
     return nullptr;
 }
 
+
+/* 释放对齐的内存空间 */
 void _aligned_free(void *ptr)
 {
     if (ptr)
     {
         auto puc = uintptr_t(ptr);
+
         auto p_link = reinterpret_cast<void **>(puc - sizeof(void *));
+
         free(*p_link);
     }
 }
