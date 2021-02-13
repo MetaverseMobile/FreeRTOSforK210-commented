@@ -20,6 +20,8 @@
 
 using namespace sys;
 
+
+/* 获取 socket 的控制 */
 #define SOCKET_ENTRY                             \
     auto &obj = system_handle_to_object(socket); \
     configASSERT(obj.is<network_socket>());      \
@@ -35,6 +37,7 @@ using namespace sys;
 
 
 
+/* 转换为 posix 格式地址 */
 static void to_posix_sockaddr(sockaddr_in &addr, const socket_address_t &socket_addr)
 {
     if (socket_addr.family != AF_INTERNETWORK)
@@ -46,6 +49,8 @@ static void to_posix_sockaddr(sockaddr_in &addr, const socket_address_t &socket_
     addr.sin_addr.s_addr = LWIP_MAKEU32(socket_addr.data[3], socket_addr.data[2], socket_addr.data[1], socket_addr.data[0]);
 }
 
+
+/* 转换为系统格式 socket 地址 */
 static void to_sys_sockaddr(socket_address_t &addr, const sockaddr_in &socket_addr)
 {
     if (socket_addr.sin_family != AF_INET)
@@ -59,6 +64,9 @@ static void to_sys_sockaddr(socket_address_t &addr, const sockaddr_in &socket_ad
     *reinterpret_cast<uint16_t *>(addr.data + 4) = ntohs(socket_addr.sin_port);
 }
 
+
+
+/* 实例化一个 socket 设备 */
 int socket(int domain, int type, int protocol)
 {
     try
@@ -66,40 +74,44 @@ int socket(int domain, int type, int protocol)
         address_family_t address_family;
         switch (domain)
         {
-        case AF_INET:
-            address_family = AF_INTERNETWORK;
-            break;
-        default:
-            throw std::invalid_argument("Invalid domain.");
+            /* 仅支持 AF_INET */
+            case AF_INET:
+                address_family = AF_INTERNETWORK;
+                break;
+            default:
+                throw std::invalid_argument("Invalid domain.");
         }
 
         socket_type_t s_type;
         switch (type)
         {
-        case SOCK_STREAM:
-            s_type = SOCKET_STREAM;
-            break;
-        case SOCK_DGRAM:
-            s_type = SOCKET_DATAGRAM;
-            break;
-        default:
-            throw std::invalid_argument("Invalid type.");
+            /* TCP */
+            case SOCK_STREAM:
+                s_type = SOCKET_STREAM;
+                break;
+            /* UDP */
+            case SOCK_DGRAM:
+                s_type = SOCKET_DATAGRAM;
+                break;
+            default:
+                throw std::invalid_argument("Invalid type.");
         }
 
+        /* 协议 */
         protocol_type_t s_protocol;
         switch (protocol)
         {
-        case IPPROTO_IP:
-            s_protocol = PROTCL_IP;
-            break;
-        case IPPROTO_TCP:
-            s_protocol = PROTCL_IP;
-            break;
-        case IPPROTO_UDP:
-            s_protocol = PROTCL_IP;
-            break;
-        default:
-            throw std::invalid_argument("Invalid protocol.");
+            case IPPROTO_IP:
+                s_protocol = PROTCL_IP;
+                break;
+            case IPPROTO_TCP:
+                s_protocol = PROTCL_IP;
+                break;
+            case IPPROTO_UDP:
+                s_protocol = PROTCL_IP;
+                break;
+            default:
+                throw std::invalid_argument("Invalid protocol.");
         }
 
         return network_socket_open(address_family, s_type, s_protocol);
@@ -110,6 +122,10 @@ int socket(int domain, int type, int protocol)
     }
 }
 
+
+
+
+/* bind */
 int bind(int socket, const struct sockaddr *address, socklen_t address_len)
 {
     try
@@ -125,6 +141,10 @@ int bind(int socket, const struct sockaddr *address, socklen_t address_len)
     CATCH_ALL;
 }
 
+
+
+
+/* accept */
 int accept(int socket, struct sockaddr *address, socklen_t *address_len)
 {
     try
@@ -143,6 +163,10 @@ int accept(int socket, struct sockaddr *address, socklen_t *address_len)
     CATCH_ALL;
 }
 
+
+
+
+/* shutdowm */
 int shutdown(int socket, int how)
 {
     try
@@ -154,6 +178,10 @@ int shutdown(int socket, int how)
     CATCH_ALL;
 }
 
+
+
+
+/* connect */
 int connect(int socket, const struct sockaddr *address, socklen_t address_len)
 {
     try
@@ -169,6 +197,9 @@ int connect(int socket, const struct sockaddr *address, socklen_t address_len)
     CATCH_ALL;
 }
 
+
+
+/* listen */
 int listen(int socket, int backlog)
 {
     try
@@ -181,6 +212,9 @@ int listen(int socket, int backlog)
     CATCH_ALL;
 }
 
+
+
+/* recv */
 int recv(int socket, void *mem, size_t len, int flags)
 {
     try
@@ -204,6 +238,10 @@ int recv(int socket, void *mem, size_t len, int flags)
     CATCH_ALL;
 }
 
+
+
+
+/* send */
 int send(int socket, const void *data, size_t size, int flags)
 {
     try
@@ -228,6 +266,11 @@ int send(int socket, const void *data, size_t size, int flags)
     CATCH_ALL;
 }
 
+
+
+
+
+/* recvfrom */
 int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
 {
     try
@@ -256,6 +299,10 @@ int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from
     CATCH_ALL;
 }
 
+
+
+
+/* sendto */
 int sendto(int socket, const void *data, size_t size, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     try
