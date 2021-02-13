@@ -18,10 +18,10 @@ long sysconf(int __name)
 {
     switch (__name)
     {
-    case _SC_NPROCESSORS_CONF:
-        return 1;
-    default:
-        break;
+        case _SC_NPROCESSORS_CONF:
+            return 1;
+        default:
+            break;
     }
 
     return -1;
