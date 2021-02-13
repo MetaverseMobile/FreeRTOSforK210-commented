@@ -20,6 +20,8 @@
 
 volatile uarths_t *const uarths = (volatile uarths_t *)UARTHS_BASE_ADDR;
 
+
+/* 高速 uart 阻塞读一个字节 */
 uint8_t uarths_read_byte()
 {
     while (1)
@@ -30,6 +32,7 @@ uint8_t uarths_read_byte()
     }
 }
 
+/* 高速 uart 阻塞写一个字节 */
 void uarths_write_byte(uint8_t c)
 {
     while (uarths->txdata.full)
@@ -37,12 +40,17 @@ void uarths_write_byte(uint8_t c)
     uarths->txdata.data = c;
 }
 
+
+/* 高速 uart 输出字符串 */
 void uarths_puts(const char *s)
 {
     while (*s)
         uarths_write_byte(*s++);
 }
 
+
+
+/* 高速 uart 读入指定字节数 */
 size_t uarths_read(uint8_t* buffer, size_t len)
 {
     size_t read = 0;
@@ -66,6 +74,9 @@ size_t uarths_read(uint8_t* buffer, size_t len)
     return read;
 }
 
+
+
+/* 高速 uart 初始化 */
 void uarths_init()
 {
     uint32_t freq = sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
