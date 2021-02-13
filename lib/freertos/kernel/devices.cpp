@@ -962,6 +962,8 @@ handle_t sys::system_alloc_handle(object_accessor<object_access> object)
     return io_alloc_handle(io_alloc_file(std::move(object)));
 }
 
+
+/* 获得设备的控制 */
 object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
 {
     /* 检查设备描述符是否在可用范围 */
