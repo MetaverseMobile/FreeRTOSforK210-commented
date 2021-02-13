@@ -49,42 +49,56 @@ class k_ethernet_interface : public virtual object_access, public heap_object, p
 {
 public:
     /* 设备构造函数 */
-    k_ethernet_interface(object_accessor<network_adapter_driver> adapter, 
-    const ip_address_t &ip_address, const ip_address_t &net_mask, const ip_address_t &gateway)
+    k_ethernet_interface(object_accessor<network_adapter_driver> adapter, /* 设备对象 */
+    const ip_address_t &ip_address, /* 设备地址 */
+    const ip_address_t &net_mask,   /* 子网掩码 */
+    const ip_address_t &gateway)    /* 网关地址 */
         : adapter_(std::move(adapter))
     {
+        /* ipv4 设备地址、子网掩码、网关 */
         ip4_addr_t ipaddr, netmask, gw;
+
         completion_event_ = xSemaphoreCreateCounting(20, 0);
 
+        /* 将入口参数地址格式转换为 ipv4 地址 */
         IP4_ADDR(&ipaddr, ip_address.data[0], ip_address.data[1], ip_address.data[2], ip_address.data[3]);
         IP4_ADDR(&netmask, net_mask.data[0], net_mask.data[1], net_mask.data[2], net_mask.data[3]);
         IP4_ADDR(&gw, gateway.data[0], gateway.data[1], gateway.data[2], gateway.data[3]);
 
+        /* 注册此对象 */
         if (!netif_add(&netif_, &ipaddr, &netmask, &gw, this, ethernetif_init, ethernet_input))
             throw std::runtime_error("Unable to init netif.");
     }
 
+    /* 启用和关闭网卡设备 */
     void set_enable(bool enable)
     {
         if (enable)
         {
+            /* 启用网卡 */
             netif_set_up(&netif_);
 
             TaskHandle_t h;
+
+            /*  创建 poll 进程 ??? */
             auto ret = xTaskCreate(poll_thread, "poll", 10240, this, 3, &h);
+
             configASSERT(ret == pdTRUE);
         }
         else
         {
+            /* 停用网卡 */
             netif_set_down(&netif_);
         }
     }
 
+    /* 设为默认网卡 */
     void set_as_default()
     {
         netif_set_default(&netif_);
     }
 
+    /* dhcp 地址池 */
     dhcp_state_t dhcp_pooling()
     {
         auto &netif = netif_;
@@ -94,51 +108,60 @@ public:
 
         for (;;)
         {
+            /* dhcp 对状态 */
             switch (dhcp_state)
             {
-            case DHCP_START:
-            {
-                dhcp_start(&netif);
-                ip_address = 0;
-                dhcp_state = DHCP_WAIT_ADDRESS;
-            }
-            break;
-
-            case DHCP_WAIT_ADDRESS:
-            {
-                ip_address = netif.ip_addr.addr;
-
-                if (ip_address != 0)
+                /* 开始申请地址 */
+                case DHCP_START:
                 {
-                    dhcp_state = DHCP_ADDRESS_ASSIGNED;
-
-                    dhcp_stop(&netif);
-                    dhcp_cleanup(&netif);
-                    return dhcp_state;
+                    dhcp_start(&netif);
+                    ip_address = 0;
+                    dhcp_state = DHCP_WAIT_ADDRESS;
                 }
-                else
+                break;
+
+                /* 等待返回地址 */
+                case DHCP_WAIT_ADDRESS:
                 {
-                    struct dhcp *dhcp = netif_dhcp_data(&netif);
-                    if (dhcp->tries > MAX_DHCP_TRIES)
+                    ip_address = netif.ip_addr.addr;
+
+                    if (ip_address != 0)
                     {
-                        dhcp_state = DHCP_TIMEOUT;
+                        /* 成功获取到地址 */
+                        dhcp_state = DHCP_ADDRESS_ASSIGNED;
+
                         dhcp_stop(&netif);
                         dhcp_cleanup(&netif);
                         return dhcp_state;
                     }
+                    else
+                    {
+                        struct dhcp *dhcp = netif_dhcp_data(&netif);
+
+                        /* dhcp 尝试次数高过最大值 */
+                        if (dhcp->tries > MAX_DHCP_TRIES)
+                        {
+                            dhcp_state = DHCP_TIMEOUT;
+                            dhcp_stop(&netif);
+                            dhcp_cleanup(&netif);
+                            return dhcp_state;
+                        }
+                    }
                 }
-            }
-            break;
+                break;
 
             default:
                 return dhcp_state;
             }
 
+            /* 延迟后再次检查状态 */
             vTaskDelay(250);
         }
         return DHCP_FAIL;
     }
 
+
+    /* 设置 ip 地址 */
     void set_addr(const ip_address_t &ip_address, const ip_address_t &net_mask, const ip_address_t &gate_way)
     {
         ip4_addr_t ipaddr, netmask, gw;
@@ -149,6 +172,8 @@ public:
         netif_set_addr(&netif_, &ipaddr, &netmask, &gw);
     }
 
+
+    /* 获取当前 ip 地址 */
     void get_addr(ip_address_t &ip_address, ip_address_t &net_mask, ip_address_t &gate_way)
     {
         ip_address.data[0] = ip4_addr1(&netif_.ip_addr);
@@ -168,6 +193,7 @@ public:
     }
 
 private:
+    /* 有数据包 */
     virtual void notify_input() override
     {
         while (adapter_->is_packet_available())
@@ -176,24 +202,29 @@ private:
         }
     }
 
+
     static void poll_thread(void *args)
     {
         auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(args);
         auto &adapter = ethnetif.adapter_;
         while (1)
         {
+            /* 收到包时, 发出通知 */
             if (xSemaphoreTake(ethnetif.completion_event_, portMAX_DELAY) == pdTRUE)
             {
                 if (adapter->interface_check())
                 {
                     adapter->disable_rx();
+
                     ethnetif.notify_input();
+
                     adapter->enable_rx();
                 }
             }
         }
     }
 
+    /* 以太网接口初始化 */
     static err_t ethernetif_init(struct netif *netif)
     {
 #if LWIP_NETIF_HOSTNAME
@@ -395,6 +426,8 @@ private:
     netif netif_;
     SemaphoreHandle_t completion_event_;
 };
+
+
 
 #define NETIF_ENTRY                                    \
     auto &obj = system_handle_to_object(netif_handle); \
