@@ -66,6 +66,7 @@ typedef struct _fpioa_assign_t
 } __attribute__((packed, aligned(4))) fpioa_assign_t;
 
 /* Function list */
+/* FPIOA 所支持的功能表 */
 static const fpioa_assign_t function_config[FUNC_MAX] =
 {
     {
@@ -5190,11 +5191,13 @@ static const fpioa_assign_t function_config[FUNC_MAX] =
     },
 };
 
+
+/* FPIOA 初始化 */
 int fpioa_init(void)
 {
     int i = 0;
 
-    /* Enable fpioa clock in system controller */
+    /* 使能 FPIOA 时钟 */
     sysctl_clock_enable(SYSCTL_CLOCK_FPIOA);
 
     /* Initialize tie */
@@ -5218,6 +5221,8 @@ int fpioa_init(void)
     return 0;
 }
 
+
+/* 取得 IO 设置信息 */
 int fpioa_get_io(int number, fpioa_io_config_t *cfg)
 {
     /* Check parameters */
@@ -5225,19 +5230,26 @@ int fpioa_get_io(int number, fpioa_io_config_t *cfg)
         return -1;
     /* Atomic read register */
     *cfg = fpioa->io[number];
+
     return 0;
 }
 
+
+/* 将 IO 按照指定参数设置 */
 int fpioa_set_io(int number, fpioa_io_config_t *cfg)
 {
     /* Check parameters */
     if (number < 0 || number >= FPIOA_NUM_IO || cfg == NULL)
         return -1;
+
     /* Atomic write register */
     fpioa->io[number] = *cfg;
+
     return 0;
 }
 
+
+/* FPIOA 上拉模式 */
 int fpioa_set_io_pull(int number, fpioa_pull_t pull)
 {
     /* Check parameters */
@@ -5266,9 +5278,13 @@ int fpioa_set_io_pull(int number, fpioa_pull_t pull)
     }
     /* Atomic write register */
     fpioa->io[number] = cfg;
+
     return 0;
 }
 
+
+
+/* 查询当前 FPIOA 的上拉模式 */
 int fpioa_get_io_pull(int number)
 {
     /* Check parameters */
@@ -5285,9 +5301,13 @@ int fpioa_get_io_pull(int number)
         pull = FPIOA_PULL_UP;
     else
         pull = FPIOA_PULL_NONE;
+
     return pull;
 }
 
+
+
+/* 设置 FPIOA 驱动模式 */
 int fpioa_set_io_driving(int number, fpioa_driving_t driving)
 {
     /* Check parameters */
@@ -5300,9 +5320,12 @@ int fpioa_set_io_driving(int number, fpioa_driving_t driving)
     cfg.ds = driving;
     /* Atomic write register */
     fpioa->io[number] = cfg;
+
     return 0;
 }
 
+
+/* 读取 FPIOA 驱动模式 */
 int fpioa_get_io_driving(int number)
 {
     /* Check parameters */
@@ -5312,6 +5335,9 @@ int fpioa_get_io_driving(int number)
     return fpioa->io[number].ds;
 }
 
+
+
+/* 设置 FPIOA 功能 */
 int fpioa_set_function_raw(int number, fpioa_function_t function)
 {
     /* Check parameters */
@@ -5385,6 +5411,7 @@ int fpioa_set_tie_value(fpioa_function_t function, int value)
     return 0;
 }
 
+/* 返回使用特定功能的 FPIOA 编号 */
 int fpioa_get_io_by_function(fpioa_function_t function)
 {
     int index = 0;
